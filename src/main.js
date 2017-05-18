@@ -1,3 +1,5 @@
+import { isFunction } from './util.js'
+
 const _ = {}
 
 _.compose = (...fns) => {
@@ -95,6 +97,54 @@ _.memoize = (function(){
 		return memoize;
 	}
 })()
+
+/**
+ * 注意这边prototype的挂载，因为fn = parent.bind以后,fn有可能是作为构造函数存在的，那么如果不挂载的话，
+ * var fnObj = new fn(). (在new运算符中，把fn的原型绑给了返回的对象)，因此fnObj._proto_ === fn.prototype 
+ * 而fn.prototype == obj,即之前绑定的对象。实际上是不应该这样的。
+ * 我们看下原生的bind，会发现fn的原型应该挂到绑定的函数上面。因此需要修正。具体我们可以做个测试。
+ * ![](http://i2.muimg.com/588926/875cead4bbc32b65.png)。
+ * 也就是说，对于通常的当做函数使用来说，返回的函数的this应该挂在指定的obj上，而作为构造函数调用的话，生成的对象的this的原型链上应该是本函数->绑定的函数，
+ * 而非本函数->绑定的对象
+ * @param  {Function}  fn   [description]
+ * @param  {[type]}    obj  [description]
+ * @param  {...[type]} args [description]
+ * @return {[type]}         [description]
+ */
+_.bind = function(fn,obj,...args){
+	const nativeBind = Function.prototype.bind;
+	if(nativeBind && fn.bind === nativeBind) return nativeBind.apply(fn,[obj].concat(args)); //注意这边是整体的参数数组
+	if(!isFunction(fn)) throw new TypeError('Bind must be called on a function');
+	const boundFunc = function(...leftArgs){
+
+		let _args = args.concat(leftArgs);
+		if(!(this instanceof boundFunc)) return fn.apply(obj,_args); //硬绑定> 显示调用
+		//针对new 的处理。仔细看下underscore源码我们会发现，其实它是把new操作符又重新实现了一遍。其实假定new有效的话，只要按照下面绑定原型到fn上即可。
+		boundFunc.prototype = Object.create(fn.prototype);
+
+		return fn.apply(obj,_args);
+	}
+	
+	return boundFunc;
+}
+
+/**
+ * 把methodNames参数指定的一些方法绑定到object上，
+ * 这些方法就会在对象的上下文环境中执行。绑定函数用作事件处理函数时非常便利，
+ * 否则函数被调用时this一点用也没有。methodNames参数是必须的。
+ * @param  {Function}  fn   [description]
+ * @param  {[type]}    obj  [description]
+ * @param  {...[type]} args [description]
+ * @return {[type]}         [description]
+ */
+_.bindAll = (obj,...methodNames)=>{
+	methodNames.forEach((name)=>{
+		let fn;
+		if(fn = obj[name]){
+			_bind(fn,obj);
+		}
+	})
+}
 
 
 export default _;
