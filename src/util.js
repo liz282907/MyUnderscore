@@ -22,3 +22,13 @@ export const isTypeof = (type)=>{
 }
 
 export const  isFunction = isTypeof('Function')
+
+export function mockNew(sourcFun,...args){
+
+	const Fn = function(){}
+	if(sourcFun.prototype) Fn.prototype = Object.create(sourcFun.prototype);
+	const obj = new Fn();
+	const result = sourcFun.apply(obj,args);
+	return typeof result==='object'? result: obj;
+
+}

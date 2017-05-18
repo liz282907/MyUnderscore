@@ -23,13 +23,13 @@ _.after = (count, fn) => {
 }
 
 _.before = (count, fn) => {
-	let result;
-    return function func(...args){
-    	if(count>0) {
-    		count--;
-        	result =  fn.apply(this,args);
-    	}
-        
+    let result;
+    return function func(...args) {
+        if (count > 0) {
+            count--;
+            result = fn.apply(this, args);
+        }
+
         return result;
     }
 }
@@ -43,19 +43,19 @@ _.before = (count, fn) => {
  * @param  {...[type]} args [description]
  * @return {[type]}         [description]
  */
-_.partial = (fn,...args)=>{
-	return function(...leftArgs){
-		let fillCount = 0;
-		for(let i=0;i<args.length;i++){
-			if(args[i]===_) args[i] = leftArgs[fillCount++];
-		}
-		const totalArgs = args.concat(leftArgs.slice(fillCount));
-		return fn.apply(this,totalArgs)
-	}
+_.partial = (fn, ...args) => {
+    return function(...leftArgs) {
+        let fillCount = 0;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i] === _) args[i] = leftArgs[fillCount++];
+        }
+        const totalArgs = args.concat(leftArgs.slice(fillCount));
+        return fn.apply(this, totalArgs)
+    }
 }
 
-_.once = (fn)=>{
-	return _.before(1,fn)
+_.once = (fn) => {
+    return _.before(1, fn)
 }
 
 /**
@@ -72,8 +72,8 @@ _.once = (fn)=>{
  * @param  {[type]}   wrapper [description]
  * @return {[type]}           [description]
  */
-_.wrap = (fn,wrapper)=>{
-	return _.partial(wrapper,fn)
+_.wrap = (fn, wrapper) => {
+    return _.partial(wrapper, fn)
 }
 
 /**
@@ -85,17 +85,17 @@ _.wrap = (fn,wrapper)=>{
  * @param  {[type]} [hashFunction] [description]
  * @return {[type]}                [description]
  */
-_.memoize = (function(){
-	let hashFunction = (...args)=>args[0];  //2
-	return (fn,hasher = hashFunction)=>{
-		const cache = {};
-		const memoize = (...args)=>{
-			const customKey = hasher.apply(this,args);
-			return cache[customKey] || (cache[customKey] = fn.apply(this,args))
-		}
-		memoize.cache = cache;
-		return memoize;
-	}
+_.memoize = (function() {
+    let hashFunction = (...args) => args[0]; //2
+    return (fn, hasher = hashFunction) => {
+        const cache = {};
+        const memoize = (...args) => {
+            const customKey = hasher.apply(this, args);
+            return cache[customKey] || (cache[customKey] = fn.apply(this, args))
+        }
+        memoize.cache = cache;
+        return memoize;
+    }
 })()
 
 /**
@@ -111,21 +111,27 @@ _.memoize = (function(){
  * @param  {...[type]} args [description]
  * @return {[type]}         [description]
  */
-_.bind = function(fn,obj,...args){
-	const nativeBind = Function.prototype.bind;
-	if(nativeBind && fn.bind === nativeBind) return nativeBind.apply(fn,[obj].concat(args)); //注意这边是整体的参数数组
-	if(!isFunction(fn)) throw new TypeError('Bind must be called on a function');
-	const boundFunc = function(...leftArgs){
+_.bind = function(fn, obj, ...args) {
+    const nativeBind = Function.prototype.bind;
+    if (nativeBind && fn.bind === nativeBind) return nativeBind.apply(fn, [obj].concat(args)); //注意这边是整体的参数数组
+    if (!isFunction(fn)) throw new TypeError('Bind must be called on a function');
+    const boundFunc = function(...leftArgs) {
 
-		let _args = args.concat(leftArgs);
-		if(!(this instanceof boundFunc)) return fn.apply(obj,_args); //硬绑定> 显示调用
-		//针对new 的处理。仔细看下underscore源码我们会发现，其实它是把new操作符又重新实现了一遍。其实假定new有效的话，只要按照下面绑定原型到fn上即可。
-		boundFunc.prototype = Object.create(fn.prototype);
+        let _args = args.concat(leftArgs);
+        if (!(this instanceof boundFunc)) return fn.apply(obj, _args); //硬绑定> 显示调用
+        //针对new 的处理。仔细看下underscore源码我们会发现，其实它是把new操作符又重新实现了一遍。其实假定new有效的话，只要按照下面绑定原型到fn上即可。
+        // boundFunc.prototype = Object.create(fn.prototype);
 
-		return fn.apply(obj,_args);
-	}
-	
-	return boundFunc;
+        //new返回的this优先级大于指定的context(obj).
+        const FNop = function() {}
+        if (fn.prototype) FNop.prototype = Object.create(fn.prototype);
+        const newObj = new FNop();
+        FNop.prototype = null;
+        const result = fn.apply(newObj, _args);
+        return typeof result === 'object' ? result : newObj;
+    }
+
+    return boundFunc;
 }
 
 /**
@@ -137,13 +143,14 @@ _.bind = function(fn,obj,...args){
  * @param  {...[type]} args [description]
  * @return {[type]}         [description]
  */
-_.bindAll = (obj,...methodNames)=>{
-	methodNames.forEach((name)=>{
-		let fn;
-		if(fn = obj[name]){
-			_bind(fn,obj);
-		}
-	})
+_.bindAll = (obj, ...methodNames) => {
+    methodNames.forEach((name) => {
+        let fn;
+        if (fn = obj[name]) {
+            obj[name] = _.bind(fn, obj);
+        }
+    })
+    return obj;
 }
 
 

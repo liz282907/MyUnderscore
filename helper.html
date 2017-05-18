@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>underscore test helper</title>
+</head>
+
+<body>
+</body>
+<script type="text/javascript">
+const _ = {}
+_.shuffle = (obj)=>{
+	let arr = Array.isArray(obj)?[].concat(obj): Object.keys(obj).map(v=>obj[v]);
+
+	const len = arr.length;
+	for(let i=0;i<len-1;i++){
+		const randomIndex = Math.floor(Math.random()* (len-i-1)) + (i+1);    
+		swap(arr,i,randomIndex);
+	}
+	return arr;
+
+	function swap(nums,i,j){
+		let temp = nums[j];
+		nums[j] = nums[i];
+		nums[i] = temp; 
+	}
+}
+_.range = (...args)=>{
+	let start = 0,stop,step = 1,len = args.length,result = [];
+	if(len===0) return;
+	if(len==1) stop = args[0];
+	else if(len===2) [start,stop] = args;
+	else if(len>=3) [start,stop,step] = args.slice(0,3);
+	
+	if(stop<start && step>0) return [];
+
+	if(step>0)
+		for(let i=start;i<stop;i+=step) result.push(i);
+	else{
+		for(let i=start;i>stop;i+=step) result.push(i);
+	}
+	return result;
+}
+const numbers = _.range(20);
+const shuffled = _.shuffle(numbers)
+console.log('----')
+</script>
+
+</html>

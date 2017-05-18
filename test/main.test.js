@@ -191,16 +191,39 @@ describe('underscore/Function tests: ', function() {
 
         it('can be bound to any value', function() {
             let func = function(salutation, firstname, lastname) {
-                return salutation + ': ' + firstname + ' ' + lastname; };
+                return salutation + ': ' + firstname + ' ' + lastname;
+            };
             func = _.bind(func, this, 'hello', 'moe', 'curly');
             assert.strictEqual(func(), 'hello: moe curly', 'the function was partially applied in advance and can accept multiple arguments');
 
-            func = function() {return this; };
+            func = function() {
+                return this; };
             assert.strictEqual(typeof _.bind(func, 0)(), 'object', 'binding a primitive to `this` returns a wrapped primitive');
 
             assert.strictEqual(_.bind(func, 0)().valueOf(), 0, 'can bind a function to `0`');
             assert.strictEqual(_.bind(func, '')().valueOf(), '', 'can bind a function to an empty string');
             assert.strictEqual(_.bind(func, false)().valueOf(), false, 'can bind a function to `false`');
+        })
+
+
+    })
+
+    describe('8. _BindAll 函数 ', function() {
+
+        it('should meet the basic requirements of the bind', function() {
+            var curly = { name: 'curly' };
+            var moe = {
+                name: 'moe',
+                getName: function() {
+                    return 'name: ' + this.name; },
+                sayHi: function() {
+                    return 'hi: ' + this.name; }
+            };
+            curly.getName = moe.getName;
+            _.bindAll(moe, 'getName', 'sayHi');
+            curly.sayHi = moe.sayHi;
+            assert.strictEqual(curly.getName(), 'name: curly', 'unbound function is bound to current object');
+            assert.strictEqual(curly.sayHi(), 'hi: moe', 'bound function is still bound to original object');
         })
 
 
