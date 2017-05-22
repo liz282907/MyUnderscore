@@ -8,6 +8,31 @@
 <body>
 </body>
 <script type="text/javascript">
+
+const isTypeof = (type)=>{
+	return (obj)=>{
+		const types = type.split("||");
+		return types.some(type=>{
+			const reg = new RegExp(`function\\s+(${type}).*`)
+			let objType;
+			if(obj===null) objType = 'null'
+			else if(typeof(obj)==='undefined') objType = 'undefined'
+			else{
+				if(type==='Function') return typeof(obj)==='function'
+				if(type==='Object') return typeof(obj)==='object'
+
+				if(obj.constructor===undefined) return false; //x由Object.create(null),且要检验是否为自定义类型
+				const matchArr = obj.constructor.toString().match(reg)
+				if(!matchArr) return false 
+				objType = matchArr[1]
+			}
+			// if(type==='Function') return objType===type && typeof(obj)==='function'//应对Object.create(Function.prototype)
+			return objType===type 
+		})		
+	}
+}
+
+
 const _ = {}
 _.shuffle = (obj)=>{
 	let arr = Array.isArray(obj)?[].concat(obj): Object.keys(obj).map(v=>obj[v]);
@@ -43,7 +68,47 @@ _.range = (...args)=>{
 }
 const numbers = _.range(20);
 const shuffled = _.shuffle(numbers)
-console.log('----')
+console.log('----');
+
+_.each = (...args) => {
+
+    let [list, iteratee, context] = args;
+    if(!list) return list;     //pass掉诸如非object的比如false,undefined
+
+    if (context) iteratee = iteratee.bind(context);
+
+    const nativeForEach = Array.prototype.forEach;
+
+    const isObject = isTypeof('Object'),
+        len = list.length;
+
+    const keys = Object.keys(list);
+
+    if(len===+len){ //鸭子类型的，有length属性的当成数组考虑
+    	if (nativeForEach) {
+            nativeForEach.call(list, iteratee);
+            return list;
+        }
+        for (let i = 0; i < len; i++) {
+            iteratee(list[i], i, list);
+        }
+    }else{
+    	for (let i = 0; i < len; i++) { //要用常数缓存，防止在多次迭代中有可能len变化
+            iteratee(list[keys[i]], keys[i],i, list);
+        }
+    }
+    return list; //返回list以便链式调用
+}
+
+
+
+const answers = [],
+                  obj = { one: 1, two: 2, three: 3 };
+obj.constructor.prototype.four = 4;
+_.each(obj, function(value, key) { answers.push(key); });
+                console.log(answers, ['one', 'two', 'three'], 'iterating over objects works, and ignores the object prototype.');
+
+
 </script>
 
 </html>

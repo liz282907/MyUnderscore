@@ -30,3 +30,5 @@ _.values = (obj)=>{
     }
     return values;
 }
+
+export default _;
