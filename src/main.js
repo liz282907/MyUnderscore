@@ -1,4 +1,4 @@
-import { isFunction } from './util.js'
+import { isFunction, isTypeof } from './util.js'
 
 const _ = {}
 
@@ -64,10 +64,10 @@ _.once = (fn) => {
  * 这样可以让 wrapper 在 function 运行之前和之后 执行代码, 
  * 调整参数然后附有条件地执行.
  * 本来return (...args)=>{
- * 		const _args = [fn,...args];
-		return wrapper.apply(this,_args);
-	}
-	但实际上应该更有扩展性一点,可以复用partial的代码，即把fn作为参数缓存
+ *      const _args = [fn,...args];
+        return wrapper.apply(this,_args);
+    }
+    但实际上应该更有扩展性一点,可以复用partial的代码，即把fn作为参数缓存
  * @param  {Function} fn      [description]
  * @param  {[type]}   wrapper [description]
  * @return {[type]}           [description]
@@ -113,23 +113,27 @@ _.memoize = (function() {
  */
 _.bind = function(fn, obj, ...args) {
     const nativeBind = Function.prototype.bind;
+
     if (nativeBind && fn.bind === nativeBind) return nativeBind.apply(fn, [obj].concat(args)); //注意这边是整体的参数数组
     if (!isFunction(fn)) throw new TypeError('Bind must be called on a function');
     const boundFunc = function(...leftArgs) {
-
         let _args = args.concat(leftArgs);
+        //作为构造函数时，this指向new的对象，因为下面绑定了原函数，所以true.
+        //作为普通函数时，this指向window,
         if (!(this instanceof boundFunc)) return fn.apply(obj, _args); //硬绑定> 显示调用
         //针对new 的处理。仔细看下underscore源码我们会发现，其实它是把new操作符又重新实现了一遍。其实假定new有效的话，只要按照下面绑定原型到fn上即可。
-        // boundFunc.prototype = Object.create(fn.prototype);
+        boundFunc.prototype = Object.create(fn.prototype);
+        // return fn.apply(this,_args);
 
         //new返回的this优先级大于指定的context(obj).
-        const FNop = function() {}
-        if (fn.prototype) FNop.prototype = Object.create(fn.prototype);
-        const newObj = new FNop();
-        FNop.prototype = null;
-        const result = fn.apply(newObj, _args);
-        return typeof result === 'object' ? result : newObj;
+        // const FNop = function() {}
+        // if (fn.prototype) FNop.prototype = Object.create(fn.prototype);
+        // const newObj = new FNop();
+        // FNop.prototype = null;
+        // const result = fn.apply(newObj, _args);
+        // return typeof result === 'object' ? result : newObj;
     }
+    
 
     return boundFunc;
 }
@@ -153,5 +157,95 @@ _.bindAll = (obj, ...methodNames) => {
     return obj;
 }
 
+/**
+ * 如果context被指定（非null,undefined, iteratee将被绑到上面，否则指向全局的this（严格环境下就是undefined））
+ * @param  {[type]}    list     [description]
+ * @param  {[type]}    iteratee [description]
+ * @param  {...[type]} args     [description]
+ * @return {[type]}             [description]
+ */
+_.map = (list, iteratee, context = this) => {
+    const result = [];
+    const keys = isTypeof('object')(list) && Object.keys(list),
+        len = (keys || list).length; //在调用iteratee的过程中，可能改变list，但是传来的值是访问到它的时候，增加的不会访问到。因此缓存length就可以
+    for (let i = 0; i < len; i++) {
+        const key = keys ? keys[i] : i;
+        result.push(iteratee.call(context, list[key], key, list)); //不要call跟apply总忘记
+    }
+    return result;
+}
+
+_.reduce = (list, iteratee, ...args) => {
+    let memo = args[0] || list[0];
+    const keys = isTypeof('object')(list) && Object.keys(list);
+    const context = args[1] || this,
+        len = (keys || list).length,
+        start = args[0] ? 0 : 1;
+
+    if (len<1 && !memo) throw new TypeError('memo must be provided when list is empty');
+
+    for (let i = start; i < len; i++) {
+        const key = keys ? keys[i] : i;
+        memo = iteratee.call(context, memo, list[key], key, list);
+    }
+    return memo;
+}
+
+_.templateSetting = {
+    interpolate: /<%=([\s\S]+)%>/g,
+    evaluate    : /<%([\s\S]+?)%>/g
+}
+
+
+
+/**
+ * 示例： ![](http://i4.buimg.com/519918/b5cd680d9364ae1b.png)
+ * 注意点，
+ * 1，因为replace g是多次执行的，因此post应该在最后再处理，中间的inner会一直计算。
+ * 2，reg的建立是有顺序的， 不能像楼主一样，最开始直接用keys.join(),因为object.keys里面的顺序不定。导致matched,跟execution
+ * 可能不是预期的顺序。不好处理到底是值还是运算表达式。
+ * 常数部分直接取出来，别忘了左右加个''，即 `'${常量string}'`,这样放到function里面的就真的是string,而不是被解析为变量
+ * @param  {[type]} tplStr   [description]
+ * @param  {[type]} settings [description]
+ * @return {[type]}          [description]
+ */
+_.template = (tplStr,settings)=>{
+
+    const setting = settings || _.templateSetting;
+    // const re = Object.keys(setting).map(category=>setting[category].source).join('|')
+    const re = [setting.interpolate.source,setting.evaluate.source].join('|')
+    const matcher = new RegExp(re,'g');
+
+    let index = 0,content = '',fn;
+    //回调函数可能会执行多次
+    tplStr.replace(matcher,(matchReg,matched,excution,offset,primitive)=>{
+        let prev = primitive.slice(index,offset),inner = '';
+        content += `'${prev}'`
+
+        index += offset+matchReg.length;
+        if(excution){
+            inner = `;\n${excution} \n content+=`;
+        }else{
+            inner = `+${matched}+`
+        }
+        content += `${inner}`;
+        
+    })
+    const post = tplStr.slice(index);
+    content += `'${post}'`
+    const fnFactory = `
+            let content = '';
+            with(obj){
+                content += ${content}
+            }
+            return content;
+            `
+    fn = new Function('obj',fnFactory);
+
+    //fn只在最开始的时候进行编译，以后就不用再处理了
+    return (obj)=>{
+        return fn.call(this,obj); 
+    }
+}
 
 export default _;

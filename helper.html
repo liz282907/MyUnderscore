@@ -108,6 +108,193 @@ obj.constructor.prototype.four = 4;
 _.each(obj, function(value, key) { answers.push(key); });
                 console.log(answers, ['one', 'two', 'three'], 'iterating over objects works, and ignores the object prototype.');
 
+_.reduce = (list, iteratee,...args)=>{
+    let memo = args[0] || list[0];
+    const keys = isTypeof('object')(list) && Object.keys(list);
+    const  context = args[1] || this,
+        len = (keys||list).length,start = args[0] ? 0 : 1;
+
+    for(let i=start;i<len;i++){
+        const key = keys? keys[i]: i;
+        memo = iteratee.call(context,memo,list[key],key,list);
+    }
+    return memo;
+}
+const result = _.reduce([1, 2, 3], function(memo, num){ return memo + num; }, 0)
+/*
+function render(tpl, data) {
+    // 拼接字符串
+    let concating = `content +='`;
+    let index = 0;
+    tpl.replace(matcher, (match, interpolate, evaluate, offset) => {
+        concating += tpl.slice(index, offset);
+        // 刷新拼接起点
+        index = offset + match.length;
+        if(evaluate) {
+        // 如果是执行逻辑
+        concating += `';\n${evaluate}\n content +='`;
+        } else if(interpolate) {
+        // 如果是插值
+        concating += `'+${interpolate}+'`;
+        }
+        return match;
+    });
+    // 剩余字符拼接
+    concating += tpl.slice(index);
+    concating += `';\n`;
+    concating = `with(obj) {\n${concating}}`;
+    // 通过函数来支持逻辑执行
+    const body = `let content = ''; \n${concating}; \nreturn content;`;
+    const renderFunc = new Function('obj', body);
+    return renderFunc(data);
+}
+const rules = {
+    // 插值
+    interpolate: /{{([\s\S]+?)}}/,
+    // 逻辑
+    evaluate: /{([\s\S+?])}/
+}
+
+// 最终的匹配正则
+const matcher = new RegExp([
+    rules.interpolate.source,
+    rules.evaluate.source
+].join('|'), 'g');
+
+const tpl = 'Students: ' +
+'{ for(let i=0;i<students.length;i++) }' +
+'{{ students[i].name }} ';
+
+data = {
+    students: [{
+        id:1,
+        name: 'wxj'
+    }, {
+        id: 2,
+        name: 'lcx'
+    }]
+};
+*/
+// const content = render(tpl, data);
+_.templateSetting = {
+    interpolate: /<%=([\s\S]+?)%>/g,
+    evaluate    : /<%([\s\S]+?)%>/g
+}
+
+_.template2 = (tplStr,settings)=>{
+
+    const setting = settings || _.templateSetting;
+    // const re = Object.keys(setting).map(category=>setting[category].source).join('|')
+    const re = [setting.interpolate.source,setting.evaluate.source].join('|')
+    const matcher = new RegExp(re,'g');
+
+    let index = 0,content = `'`,fn;
+    //回调函数可能会执行多次
+    tplStr.replace(matcher,(matchReg,matched,excution,offset,primitive)=>{
+        let prev = primitive.slice(index,offset),inner = '';
+        content += `${prev}`
+
+        index += offset+matchReg.length;
+        if(excution){
+            inner = `;\n${excution} \n content+=`;
+        }else{
+            inner = `+${matched}+`
+        }
+        content += `'${inner}'`;
+        
+    })
+    const post = tplStr.slice(index);
+    content += `${post}'`
+    const fnFactory = `
+            let content = '';
+            with(obj){
+                content += ${content}
+            }
+            return content;
+            `
+    fn = new Function('obj',fnFactory);
+
+    return (obj)=>{
+        return fn(obj);
+    }
+}
+
+_.template = (tplStr,settings)=>{
+
+    const setting = settings || _.templateSetting;
+    // const re = Object.keys(setting).map(category=>setting[category].source).join('|')
+    const re = [setting.interpolate.source,setting.evaluate.source].join('|')
+    const matcher = new RegExp(re,'g');
+
+    let index = 0,content = '',fn;
+    //回调函数可能会执行多次
+    tplStr.replace(matcher,(matchReg,matched,excution,offset,primitive)=>{
+        let prev = primitive.slice(index,offset),inner = '';
+        content += `'${prev}'`
+
+        index += offset+matchReg.length;
+        // const post = primitive.slice(index);
+        // content += `'${prev}'`;
+        if(excution){
+            inner = `;\n${excution} \n content+=`;
+        }else{
+            inner = `+${matched}+`
+        }
+        content += `${inner}`;
+        
+    })
+    const post = tplStr.slice(index);
+    content += `'${post}'`
+    const fnFactory = `
+            let content = '';
+            with(obj){
+                content += ${content}
+            }
+            return content;
+            `
+    fn = new Function('obj',fnFactory);
+
+    return (obj)=>{
+        return fn.call(this,obj);
+    }
+}
+
+
+// var compiled = _.template("hello: <%= name %>");
+// var renderData = compiled({name: 'moe'});
+// console.log(renderData)
+
+const tpl = 'Students: \\n' +
+'<% for(i=0;i<students.length;i++) %>' +
+'<%= students[i].name %> ';
+
+const data = {
+    students: [{
+        id:1,
+        name: 'wxj'
+    }, {
+        id: 2,
+        name: 'lcx'
+    }]
+}
+
+var render = _.template(tpl);
+console.log(render(data))
+// tpl1 = '<% console.log(\'name\', this.name); %>';
+// const tplManager = {
+//     name: 'manager',
+//     log: _.template(tpl1)
+// };
+// console.log(tplManager.log({}))
+
+// var tpl3 = 
+// `<% if (user) { %>
+//  	<h2><%= user.name %></h2>
+// <% } else { %>
+//  	<h2> 5名用户</h2>
+//  <% } %>`;
+// console.log(_.template(tpl3)({user: {name: 'Jackson Tian'}}));
+
 
 </script>
 

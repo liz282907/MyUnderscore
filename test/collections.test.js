@@ -2,7 +2,7 @@ import chai from 'chai'
 const assert = chai.assert;
 import _ from '../src/Collection.js'
 
-describe('underscore/Function tests: ', function() {
+describe('underscore/Collection tests: ', function() {
 
 
     describe('1. _.shuffle 函数：', function() {
@@ -23,19 +23,13 @@ describe('underscore/Function tests: ', function() {
         })
     })
 
-
-})
-
-describe('underscore/Function tests: ', function() {
-
-
     describe('2. _.each 函数：', function() {
         const notes = [1, 2, 3];
 
         it('each iterators provide value and iteration count', function() {
 
             _.each([1, 2, 3], (num, i) => {
-                assert.strictEqual(num, i + 1,'each iterators provide value and iteration count');
+                assert.strictEqual(num, i + 1, 'each iterators provide value and iteration count');
             })
 
             // const answers = [];
@@ -48,7 +42,7 @@ describe('underscore/Function tests: ', function() {
             // assert.strictEqual(3, count, 'the fun should be called only 3 times');
         })
 
-        it('cound access the original list',function(){
+        it('cound access the original list', function() {
             var answer = null;
             _.each([1, 2, 3], function(num, index, arr) {
                 if (arr.includes(num)) answer = true;
@@ -58,7 +52,7 @@ describe('underscore/Function tests: ', function() {
 
         describe('cound only iterate the owned key-value of the list, ignore those in the prototype', function() {
             const answers = [],
-                  obj = { one: 1, two: 2, three: 3 };
+                obj = { one: 1, two: 2, three: 3 };
 
             before(() => {
                 obj.constructor.prototype.four = 4;
@@ -85,7 +79,7 @@ describe('underscore/Function tests: ', function() {
         })
 
         it('cound handle other types of list,such as false,null', function() {
-            
+
             let answers = 0;
             _.each(null, function() {++answers; });
             assert.strictEqual(answers, 0, 'handles a null properly');
@@ -98,9 +92,38 @@ describe('underscore/Function tests: ', function() {
             assert.strictEqual(_.each(null, function() {}), null);
 
             a = 'test';
-            _.each(a, function(v,i) {assert.strictEqual(v,a[i])});
+            _.each(a, function(v, i) { assert.strictEqual(v, a[i]) });
 
         })
+    })
+
+    describe('3. _.reduce 函数：', function() {
+
+        it('could reduce on array or object', function() {
+            var flattened = [
+                [0, 1],
+                [2, 3],
+                [4, 5]
+            ].reduce((a, b) => a.concat(b), []);
+            assert.deepEqual(flattened, [0, 1, 2, 3, 4, 5]);
+
+            var friends = [
+                { name: "Anna", books: ["Bible", "Harry Potter"], age: 21 },
+                { name: "Bob", books: ["War and peace", "Romeo and Juliet"], age: 26 },
+                { name: "Alice", books: ["The Lord of the Rings", "The Shining"], age: 18 }
+            ]
+            var allbooks = friends.reduce(function(prev, curr) {
+                return [...prev, ...curr.books];
+            }, ["Alphabet"]);
+
+            assert.deepEqual(allbooks, ["Alphabet", "Bible", "Harry Potter", "War and peace", "Romeo and Juliet", "The Lord of the Rings", "The Shining"]);
+        })
+
+        it('cound access the original list', function() {
+
+        })
+
+
     })
 
 

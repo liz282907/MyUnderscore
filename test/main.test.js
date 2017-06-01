@@ -193,16 +193,18 @@ describe('underscore/Function tests: ', function() {
             let func = function(salutation, firstname, lastname) {
                 return salutation + ': ' + firstname + ' ' + lastname;
             };
+
             func = _.bind(func, this, 'hello', 'moe', 'curly');
             assert.strictEqual(func(), 'hello: moe curly', 'the function was partially applied in advance and can accept multiple arguments');
 
-            func = function() {
-                return this; };
-            assert.strictEqual(typeof _.bind(func, 0)(), 'object', 'binding a primitive to `this` returns a wrapped primitive');
+            let func1 = function() {console.log(this);return this; };
+            assert.strictEqual(typeof func1.bind(0)(), 'object-', 'the function was partially applied in advance and can accept multiple arguments');
 
-            assert.strictEqual(_.bind(func, 0)().valueOf(), 0, 'can bind a function to `0`');
-            assert.strictEqual(_.bind(func, '')().valueOf(), '', 'can bind a function to an empty string');
-            assert.strictEqual(_.bind(func, false)().valueOf(), false, 'can bind a function to `false`');
+            assert.strictEqual(typeof _.bind(func1, 0)(), 'object', 'binding a primitive to `this` returns a wrapped primitive');
+
+            assert.strictEqual(_.bind(func1, 0)().valueOf(), 0, 'can bind a function to `0`');
+            assert.strictEqual(_.bind(func1, 'string')().valueOf(), 'string', 'can bind a function to an empty string');
+            assert.strictEqual(_.bind(func1, false)().valueOf(), false, 'can bind a function to `false`');
         })
 
 
